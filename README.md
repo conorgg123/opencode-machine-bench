@@ -1,35 +1,46 @@
 # opencode-machine-bench
 
-Benchmark + fixer for comparing and speeding up opencode machines.
+Benchmark + thermal test + fixer for comparing and speeding up opencode machines.
 
-Same model, same opencode — when one machine feels faster, the reason is always local: single-core CPU speed, disk I/O, antivirus tax, network latency to the API, or power throttling.
+Same model, same opencode — when one machine feels faster, the reason is always local: single-core CPU speed, disk I/O, antivirus tax, network latency to the API, or power/thermal throttling. These scripts measure all of it, fix what's fixable, and verify the result.
 
 ## Contents
 
-- `bench.ps1` — measures CPU single-core, disk, network, and throttling context. 30–60s, safe, changes nothing.
-- `fixit.ps1` — applies the usual fixes: performance power plan + Defender exclusions for dev folders. Reversible. Needs admin (self-elevates, shows a UAC prompt).
+- `bench.ps1` — CPU single-core, disk, network, throttling context. ~30-60s, changes nothing.
+- `thermal.ps1` — 60s sustained single-core load, per-chunk times + live clocks, detects machines that only slow down after warming up. Needs no admin.
+- `fixit.ps1` — power plan (Ultimate/High performance, aggressive boost, max state), Defender exclusions for dev folders. Self-elevates (UAC prompt), reversible.
 
-## Full diagnose -> fix -> verify (copy-paste into opencode)
+## Full autonomous run (copy-paste into opencode)
 
-> Run this end-to-end on this machine and show all the raw outputs verbatim, in order. Do not summarize, do not truncate:
+> You are diagnosing why this machine runs opencode slower than another machine with the same model and same opencode. Run everything below end-to-end, then analyze it yourself and give me the final verdict. Show raw outputs verbatim, then your analysis. Do not ask questions; a UAC prompt will appear at the fix step — tell the user to click Yes.
 >
 > ```powershell
 > Invoke-WebRequest "https://raw.githubusercontent.com/conorgg123/opencode-machine-bench/main/bench.ps1" -OutFile "$env:TEMP\bench.ps1"
 > powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\bench.ps1"
 >
+> Invoke-WebRequest "https://raw.githubusercontent.com/conorgg123/opencode-machine-bench/main/thermal.ps1" -OutFile "$env:TEMP\thermal.ps1"
+> powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\thermal.ps1"
+>
 > Invoke-WebRequest "https://raw.githubusercontent.com/conorgg123/opencode-machine-bench/main/fixit.ps1" -OutFile "$env:TEMP\fixit.ps1"
 > powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\fixit.ps1"
 >
 > powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\bench.ps1"
+> powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\thermal.ps1"
 > ```
 >
-> A UAC prompt will appear during fixit — click Yes. Then paste all three output blocks back.
+> Then compare this machine's before/after numbers against the reference results below and against each other, and report:
+> 1. Which factor makes this machine slower (single-core CPU / disk / network latency / throttling / antivirus)
+> 2. What the fixes recovered
+> 3. What remains unfixable in software (hardware or network), if anything
+
+Total runtime ~4-5 minutes. No admin needed except the fixit step.
 
 ## What fixit changes (all reversible)
 
 | Fix | Why | Undo |
 |---|---|---|
 | Power plan -> Ultimate/High performance + "Best performance" overlay | Quiet/Balanced profiles cap CPU clocks | `powercfg /setactive SCHEME_BALANCED` |
+| CPU boost mode -> Aggressive, max processor state 100% (AC) | stops clocks dipping between bursts | `powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PERFBOOSTMODE 1` |
 | Defender path exclusions: opencode dirs, TEMP, npm/bun dirs, current project folder | real-time scanning taxes every file tool call | `Remove-MpPreference -ExclusionPath "<path>"` |
 
 Real-time protection stays ON. Only dev folders are excluded.
@@ -43,8 +54,16 @@ Real-time protection stays ON. Only dev folders are excluded.
 - `power_scheme` — Quiet/Balanced/Power Saver profiles cap CPU clocks; Performance is fastest.
 - `cpu_load_pct`, `processes` — background noise while testing.
 
-## Reference result (i9-14900HX laptop, NVMe, wired 18ms ping)
+## Reading thermal results
 
+- `chunk_N_ms` — should be flat. Rising later chunks = thermal/power throttling.
+- `slowdown_pct` — last3 vs first3 chunks: under 5% stable, 5-15% mild throttle, over 15% heavy throttle.
+- `clock_min/max_mhz` — if clocks drop during load, power limits or thermals are the cause.
+- `temp_c` — often "not exposed by this machine" on modern laptops; not a failure.
+
+## Reference results (i9-14900HX, NVMe, ~18ms ping, power scheme "Quiet")
+
+bench.ps1:
 ```
 int_loop_500M_ms               1230
 fp_loop_300M_ms                1038
@@ -55,4 +74,15 @@ small_write_1000x4KB_ms        998
 small_read_1000x4KB_ms         223
 https_ttfb_ms_3runs            227,228,180
 ping_1.1.1.1_avg_ms            18.2
+```
+
+thermal.ps1:
+```
+chunk_iters                    1100M
+first3_avg_ms                  3017
+last3_avg_ms                   2939
+slowdown_pct                   -2.6
+clock_min_mhz                  1466
+clock_max_mhz                  2200
+verdict                        stable - no thermal throttling
 ```

@@ -58,6 +58,10 @@ if (((powercfg /list) -join "`n") -match $ultimate) {
     Say "set: High performance (Ultimate Performance not available on this system)"
 }
 [void](powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238 2>$null)
+[void](powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PERFBOOSTMODE 2)
+[void](powercfg /setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX 100)
+[void](powercfg /setactive SCHEME_CURRENT)
+Say "boost: aggressive, max processor state 100% (AC)"
 Say ("active now: {0}" -f ((powercfg /getactivescheme) -join ''))
 
 Say ""
