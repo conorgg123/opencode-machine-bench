@@ -45,6 +45,12 @@ Total runtime ~4-5 minutes. No admin needed except the fixit step.
 
 Real-time protection stays ON. Only dev folders are excluded.
 
+## Is it safe on machines with different specs?
+
+Yes. The fixes are generic Windows settings, not tuned to specific hardware, and every change is reversible (see undo column above). On a machine already running a performance plan with exclusions, it is a no-op. The proof is always the machine's own before/after result — the reference numbers are just a yardstick, not a target.
+
+Two notes: the fixes target plugged-in use (on battery, Windows may throttle regardless), and Defender exclusions trade a small amount of security for speed in dev folders only. If a machine has an OEM performance mode (Lenovo/ASUS/Dell software), that mode can still cap clocks — the thermal test will show it.
+
 ## Reading benchmark results
 
 - `int_loop_500M_ms`, `fp_loop_300M_ms`, `sha256_256MB_ms` — lower is better. Single-core speed dominates day-to-day opencode responsiveness.
