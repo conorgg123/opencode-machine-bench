@@ -4,6 +4,18 @@ Benchmark + thermal test + fixer for comparing and speeding up opencode machines
 
 Same model, same opencode — when one machine feels faster, the reason is always local: single-core CPU speed, disk I/O, antivirus tax, network latency to the API, or power/thermal throttling. These scripts measure all of it, fix what's fixable, and verify the result.
 
+## Why one machine is faster (the short version)
+
+The model runs on datacenter GPUs, not on your PC. Same model + same opencode = identical raw inference speed. What differs is everything the local machine does around each API call:
+
+1. **The local half is single-threaded.** opencode's TUI, file reads/writes, and shell commands run on one core. More cores don't help; faster single-core does. A machine that looks weaker on paper can beat a many-core one.
+2. **Every step pays network latency.** Each turn of the agent loop is a round-trip to the API. 150ms of extra latency x hundreds of tool calls = seconds to minutes of dead time. Wi-Fi, VPNs, and ISP routing show up here.
+3. **Antivirus taxes every file operation.** Real-time scanning intercepts each read/write; folders with many small files pay it on every tool call.
+4. **Power and thermal limits throttle the CPU.** Quiet/Balanced power plans and warm laptops drop clocks exactly when the machine is working hard.
+5. **Disk speed** is a smaller but real factor for file-heavy work.
+
+That is also the fix priority order: power plan -> antivirus exclusions -> nothing scriptable left (network routing and hardware stay as-is, and the numbers will name them).
+
 ## Contents
 
 - `bench.ps1` — CPU single-core, disk, network, throttling context. ~30-60s, changes nothing.
@@ -32,6 +44,7 @@ Same model, same opencode — when one machine feels faster, the reason is alway
 > 1. Which factor makes this machine slower (single-core CPU / disk / network latency / throttling / antivirus)
 > 2. What the fixes recovered
 > 3. What remains unfixable in software (hardware or network), if anything
+> 4. A short plain-English explanation of why this machine was slower, based on the "Why one machine is faster" section above
 
 Total runtime ~4-5 minutes. No admin needed except the fixit step.
 
