@@ -26,6 +26,14 @@ That is also the fix priority order: power plan -> antivirus exclusions -> nothi
 
 > You are diagnosing why this machine runs opencode slower than another machine with the same model and same opencode. Run everything below end-to-end, then analyze it yourself and give me the final verdict. Show raw outputs verbatim, then your analysis. Do not ask questions; a UAC prompt will appear at the fix step — tell the user to click Yes.
 >
+> First download the README — it holds the reference results you will compare against and the explanation of why machines differ:
+>
+> ```powershell
+> Invoke-WebRequest "https://raw.githubusercontent.com/conorgg123/opencode-machine-bench/main/README.md" -OutFile "$env:TEMP\opencode-bench-README.md"
+> ```
+>
+> Read `$env:TEMP\opencode-bench-README.md`, then run this whole block:
+>
 > ```powershell
 > Invoke-WebRequest "https://raw.githubusercontent.com/conorgg123/opencode-machine-bench/main/bench.ps1" -OutFile "$env:TEMP\bench.ps1"
 > powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\bench.ps1"
